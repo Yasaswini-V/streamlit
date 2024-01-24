@@ -1,0 +1,131 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Entity class="oracle.dbtools.crest.model.design.logical.Entity" directorySegmentName="seg_0" id="CD7ED61A-EEFC-3E08-1B82-D73F758729C6" name="Patrons">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:09:58 UTC</createdTime>
+<ownerDesignName>Logical</ownerDesignName>
+<engineerTo>
+<item key="A2D94ED2-2D2E-3BCB-19EC-593EBEC8599E" value="true"/>
+</engineerTo>
+<adequatelyNormalized>NO</adequatelyNormalized>
+<expectedVolumes>0</expectedVolumes>
+<fwdEngineeringStrategyName>Single Table</fwdEngineeringStrategyName>
+<growthPercent>0</growthPercent>
+<growthType>Year</growthType>
+<maxVolumes>9999999</maxVolumes>
+<minVolumes>0</minVolumes>
+<normalForm>Third</normalForm>
+<attributes itemClass="oracle.dbtools.crest.model.design.logical.Attribute">
+<Attribute name="patron_id" id="F5854ABF-CD41-9060-A213-7DF63062A3AE">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:10:07 UTC</createdTime>
+<ownerDesignName>Logical</ownerDesignName>
+<engineerTo>
+<item key="A2D94ED2-2D2E-3BCB-19EC-593EBEC8599E" value="true"/>
+</engineerTo>
+<use>0</use>
+<logicalDatatype>LOGDT011</logicalDatatype>
+<domain>725F09D8-4473-5E69-98DF-29C38F7D7DCB</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+</Attribute>
+<Attribute name="last_name" id="5E73240D-7F81-4A80-CB0F-A2DD9CD16345">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:10:27 UTC</createdTime>
+<ownerDesignName>Logical</ownerDesignName>
+<engineerTo>
+<item key="A2D94ED2-2D2E-3BCB-19EC-593EBEC8599E" value="true"/>
+</engineerTo>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>DA692699-56AA-7BC8-C274-3DD150D413AE</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+</Attribute>
+<Attribute name="frist_name" id="310D1722-1AAC-7902-5390-059A040D53F8">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:10:39 UTC</createdTime>
+<ownerDesignName>Logical</ownerDesignName>
+<engineerTo>
+<item key="A2D94ED2-2D2E-3BCB-19EC-593EBEC8599E" value="true"/>
+</engineerTo>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>DA692699-56AA-7BC8-C274-3DD150D413AE</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+</Attribute>
+<Attribute name="street_address" id="E1081429-3B25-D73B-B7BC-DF9AB2BBEAD9">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:10:49 UTC</createdTime>
+<ownerDesignName>Logical</ownerDesignName>
+<engineerTo>
+<item key="A2D94ED2-2D2E-3BCB-19EC-593EBEC8599E" value="true"/>
+</engineerTo>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>8BA209E0-AB3B-BE21-388C-FCF6148ACD1A</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+</Attribute>
+<Attribute name="city" id="9E3D320C-A3BC-B694-6988-271B0B7494A4">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:11:01 UTC</createdTime>
+<ownerDesignName>Logical</ownerDesignName>
+<engineerTo>
+<item key="A2D94ED2-2D2E-3BCB-19EC-593EBEC8599E" value="true"/>
+</engineerTo>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>89D43FFD-0F9D-DF22-A149-98930ECCE81B</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+</Attribute>
+<Attribute name="state" id="6279EED5-B0B3-387C-BAD7-F88B318D3D6D">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:11:10 UTC</createdTime>
+<ownerDesignName>Logical</ownerDesignName>
+<engineerTo>
+<item key="A2D94ED2-2D2E-3BCB-19EC-593EBEC8599E" value="true"/>
+</engineerTo>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>97E3A533-EC92-4540-E456-6D47D9FBF146</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+</Attribute>
+<Attribute name="zip" id="201A6734-9E84-48A6-6226-8A23EB367F11">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:11:20 UTC</createdTime>
+<ownerDesignName>Logical</ownerDesignName>
+<engineerTo>
+<item key="A2D94ED2-2D2E-3BCB-19EC-593EBEC8599E" value="true"/>
+</engineerTo>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>F1446595-C447-E659-568C-16D39D5333E4</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+</Attribute>
+<Attribute name="Book_id" id="BBECCA75-D8E4-1194-027E-8A87293BD530">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:12:47 UTC</createdTime>
+<generatorID>D38BC94E-0749-4649-66C8-6F87671C1823</generatorID>
+<ownerDesignName>Logical</ownerDesignName>
+<engineerTo>
+<item key="A2D94ED2-2D2E-3BCB-19EC-593EBEC8599E" value="true"/>
+</engineerTo>
+<referedAttribute>4CD33D60-EFD8-35E9-68B7-FF92B28DBE34</referedAttribute>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>D62B9DDE-8DC0-D7A9-79BE-6B1E50E451AF</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+</Attribute>
+</attributes>
+<identifiers itemClass="oracle.dbtools.crest.model.design.logical.CandidateKey">
+<identifier id="74EA7CD7-0073-2F30-48D7-DD82504EFA44" name="Patrons PK">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:10:25 UTC</createdTime>
+<ownerDesignName>Logical</ownerDesignName>
+<engineerTo>
+<item key="A2D94ED2-2D2E-3BCB-19EC-593EBEC8599E" value="true"/>
+</engineerTo>
+<pk>true</pk>
+<usedAttributes>
+<attributeRef>F5854ABF-CD41-9060-A213-7DF63062A3AE</attributeRef>
+</usedAttributes>
+</identifier>
+</identifiers>
+</Entity>

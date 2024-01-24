@@ -1,0 +1,81 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="790C4C7F-51E1-30BB-BAEF-002BF017B5AA" name="Books">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:13:43 UTC</createdTime>
+<generatorID>3CF773D0-65E5-B501-A03A-C2368A87FC0F</generatorID>
+<ownerDesignName>Logical</ownerDesignName>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="Book_id" id="11A8E639-6578-7563-1FD2-868F3D70ED78">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:13:43 UTC</createdTime>
+<generatorID>4CD33D60-EFD8-35E9-68B7-FF92B28DBE34</generatorID>
+<ownerDesignName>Logical</ownerDesignName>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>D62B9DDE-8DC0-D7A9-79BE-6B1E50E451AF</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="title" id="476F41D8-7AA7-F676-3E78-CD907853EDCC">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:13:43 UTC</createdTime>
+<generatorID>E2346A19-501F-365D-3FAA-374D3EDAEA16</generatorID>
+<ownerDesignName>Logical</ownerDesignName>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>E8F2A830-A8E9-29AE-69B7-A56B55E65811</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="autthor_last_name" id="6521075B-D352-52CF-7614-5CB3874A7AA7">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:13:43 UTC</createdTime>
+<generatorID>AF6F9788-BD0D-5072-E582-B0565BEE0271</generatorID>
+<ownerDesignName>Logical</ownerDesignName>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>DA692699-56AA-7BC8-C274-3DD150D413AE</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="author_first_name" id="F7C7448B-47E5-3928-0CE0-D7CDFB0F0139">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:13:43 UTC</createdTime>
+<generatorID>E3DFF17A-08D7-DFF6-E3DF-9F9EF9BAA268</generatorID>
+<ownerDesignName>Logical</ownerDesignName>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>DA692699-56AA-7BC8-C274-3DD150D413AE</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="rating" id="551B4DC4-DCDD-75F8-C5F7-5638378F96F3">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:13:43 UTC</createdTime>
+<generatorID>7B7B2A4A-CC33-B38D-AECC-B22E3B15A850</generatorID>
+<ownerDesignName>Logical</ownerDesignName>
+<use>0</use>
+<logicalDatatype>LOGDT011</logicalDatatype>
+<domain>725F09D8-4473-5E69-98DF-29C38F7D7DCB</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="53D29CF8-9919-690C-F71A-B2A54DAD89CE" name="Books_PK">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:13:43 UTC</createdTime>
+<generatorID>8AA06ED1-7711-983A-9081-553EE5A856D7</generatorID>
+<ownerDesignName>Logical</ownerDesignName>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="11A8E639-6578-7563-1FD2-868F3D70ED78"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>

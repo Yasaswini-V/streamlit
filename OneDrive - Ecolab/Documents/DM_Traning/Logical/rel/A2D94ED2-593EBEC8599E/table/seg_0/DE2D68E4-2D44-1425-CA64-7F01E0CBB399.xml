@@ -1,0 +1,96 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="DE2D68E4-2D44-1425-CA64-7F01E0CBB399" name="Transactions">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:13:43 UTC</createdTime>
+<generatorID>31F5391C-8129-9DCC-BA03-D728B4CD4DB5</generatorID>
+<ownerDesignName>Logical</ownerDesignName>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="transaction_id" id="E762C534-A9AF-5B18-7D91-4E6ACAB808D5">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:13:43 UTC</createdTime>
+<generatorID>28FF058B-5E0F-8B08-BA86-A6A4F3788F82</generatorID>
+<ownerDesignName>Logical</ownerDesignName>
+<use>0</use>
+<logicalDatatype>LOGDT011</logicalDatatype>
+<domain>725F09D8-4473-5E69-98DF-29C38F7D7DCB</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="transaction_date" id="BA2700CF-512C-F597-0F78-9382C5F3C837">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:13:43 UTC</createdTime>
+<generatorID>37EC65C3-21DB-11DC-61B1-5E07F300249E</generatorID>
+<ownerDesignName>Logical</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT008</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="transaction_type" id="230535C9-4F30-5A4C-4397-A226DE02A9AD">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:13:43 UTC</createdTime>
+<generatorID>F3F72A70-416B-E95D-E89B-8DCA8660026A</generatorID>
+<ownerDesignName>Logical</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="Patrons_patron_id" id="C6B77CC7-967D-DC20-776F-19A0970F87C3">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:13:43 UTC</createdTime>
+<generatorID>2DCCA77E-D8D6-2EAF-4081-CA73A118E56D</generatorID>
+<ownerDesignName>Logical</ownerDesignName>
+<use>0</use>
+<logicalDatatype>LOGDT011</logicalDatatype>
+<domain>725F09D8-4473-5E69-98DF-29C38F7D7DCB</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<previousColumn>false</previousColumn>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="2410C387-D614-64CA-685B-1088D42EC19A" referredColumn="CFFF0177-3DE4-EFD5-851B-352B0E82B83E"/>
+</associations>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="4E6C57D3-71ED-4B69-485A-0E78E8A4531A" name="Transactions_PK">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:13:43 UTC</createdTime>
+<generatorID>0C313BA9-EC21-7E6F-CD7A-D797FA452B1F</generatorID>
+<ownerDesignName>Logical</ownerDesignName>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="E762C534-A9AF-5B18-7D91-4E6ACAB808D5"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="781BEFCF-6D31-FB31-2883-A4763069353C" name="Transactions__IDX">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:13:43 UTC</createdTime>
+<ownerDesignName>Logical</ownerDesignName>
+<indexState>Unique Plain Index</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<relationGeneratorID>6076EB88-5221-FF1C-6031-FA9248C6FBB5</relationGeneratorID>
+<indexColumnUsage>
+<colUsage columnID="C6B77CC7-967D-DC20-776F-19A0970F87C3"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="642503B2-3C2A-C449-DFAA-676ECA0752E1" name="Transactions_Patrons_FK">
+<createdBy>vya1</createdBy>
+<createdTime>2024-01-24 10:13:43 UTC</createdTime>
+<generatorID>6076EB88-5221-FF1C-6031-FA9248C6FBB5</generatorID>
+<ownerDesignName>Logical</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="C6B77CC7-967D-DC20-776F-19A0970F87C3"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>
