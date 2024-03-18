@@ -61,8 +61,25 @@ def delete():
 
     st.markdown(html_code, unsafe_allow_html=True)
     st.write("")
-    df=get_df('table_details')
-    selection = list(Get_rows(df))
+    name=st.text_input("Enter your name")
+    df=get_df('user_details')
+    t_df=get_df('table_details')
+    data_dict=df.to_dict(orient='list')
+    new_df={}
+    project_name=[]
+    table_data=t_df.to_dict(orient='list')
+    for i in table_data.keys():
+        new_df[i]=[]
+    for i in range(len(data_dict['MEMBER_NAME'])):
+        if data_dict['MEMBER_NAME'][i] == name.upper():
+            project_name.append(data_dict['PROJECT_NAME'][i])
+    for j in project_name:
+        for i in range(len(table_data['PROJECT_NAME'])):
+            if j==table_data['PROJECT_NAME'][i]:
+                for k in table_data.keys():
+                    new_df[k].append(table_data[k][i]) 
+    old_df=pd.DataFrame(new_df)
+    selection = list(Get_rows(old_df))
     removed=[]
     project=[]
     col1,col2=st.columns(2)
