@@ -1,27 +1,17 @@
 import snowflake.connector
+from PIL import Image
+import io
+import base64
 from snowflake.connector.pandas_tools import write_pandas
 import pandas as pd
 import streamlit as st
 import datetime
 from datetime import date
 import time
-import main
-
-@st.cache_resource(ttl=6000, experimental_allow_widgets=True) 
-def connect_local():
-    conn = snowflake.connector.connect(
-    account='ecolab.east-us-2.azure',
-    user='YASASWINI.V@ECOLAB.COM',
-    warehouse='EG_DEV_SVC_ETL_ENGR_WH',
-    role='EG_DEV_ENGR_FR',
-    database='EG_DEV_WRKS_ENGR_DB',
-    schema='SHARED_COMMON',
-    authenticator='externalbrowser',
-    client_session_keep_alive = 'true'
-    )
-    return conn
+import Main
+import conn
  
-con=connect_local()
+con=conn.connect_local()
 
 def combine_date(date1,date2):
     date=''
@@ -80,6 +70,22 @@ def insert_check():
                 st.error(f"Error inserting data: {e}")
 
 def insert():
+    im=Image.open('icons/Insert.png')
+    img_bytes = io.BytesIO()
+    im.save(img_bytes, format="PNG")
+    img_bytes = img_bytes.getvalue()
+
+    # Encode bytes as base64
+    img_str = base64.b64encode(img_bytes).decode()
+
+    # Define HTML code with image and text
+    html_code = f"""
+            <div style="display: flex; align-items: center;">
+                <p style="margin: 0;font-size:40px;font-weight:bold;font-family: 'Agbalumo',serif"> Insert  </p>
+                <img src="data:image/png;base64,{img_str}" alt="Icon" style="width: 50px; height: 45px; margin-left: 10px;">
+            </div>"""
+
+    st.markdown(html_code, unsafe_allow_html=True)
     if 'save_form' not in st.session_state:
         st.session_state.save_form=False
     if 'submit_form' not in st.session_state:
@@ -124,8 +130,8 @@ def insert():
                     st.session_state.remarks=remarks
                     st.session_state.primary_contact=primary_contact
                     st.session_state.inserted_on=inserted_on        
-                    st.toast('Your data is saved!! Please click submit to validate and insert data')
-                    time.sleep(2z)
+                    st.info('Your data is saved!! Please click submit to validate and insert data')
+                    time.sleep(2)
                     st.rerun()
                 col2.form_submit_button("Submit",on_click=insert_check)
                     
