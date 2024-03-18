@@ -1,29 +1,17 @@
+import streamlit as st
+from PIL import Image
+import io
+import base64
 import snowflake.connector
 from snowflake.snowpark.session import Session
 from snowflake.snowpark.functions import col 
 import pandas as pd
-import streamlit as st
 import datetime
+import Main
 from collections import defaultdict
-import main
+import conn
 
-@st.cache_resource(ttl=6000, experimental_allow_widgets=True) 
-def connect_local():
-    conn = snowflake.connector.connect(
-    account='ecolab.east-us-2.azure',
-    user='YASASWINI.V@ECOLAB.COM',
-    warehouse='EG_DEV_SVC_ETL_ENGR_WH',
-    role='EG_DEV_ENGR_FR',
-    database='EG_DEV_WRKS_ENGR_DB',
-    schema='SHARED_COMMON',
-    authenticator='externalbrowser',
-    client_session_keep_alive = 'true'
-    )
-    return conn
-
-con=connect_local()
-
-# df =pd.DataFrame(con.cursor().execute('SELECT * FROM EG_DEV_WRKS_ENGR_DB.SHARED_COMMON.TABLE_DETAILS_DESC').fetch_pandas_all())
+con=conn.connect_local()
 
 def get_df(opt):
     if opt=='table_details':
@@ -49,11 +37,23 @@ def Update_table(values):
         for i in values:
             con.cursor().execute(f" UPDATE {database}.{schema}.{trg_table_name} SET PROJECT_NAME=%s,OBJECT_MODIFIED=%s,OBJECT_IMPACTED=%s,UAT_ENV=%s,UAT_TIMELINE=%s,DEPLOYMENT_DATE=%s,GRAIN_CHANGED=%s,REMARKS=%s,PRIMARY_CONTACT=%s WHERE ID=%s;",(i['PROJECT_NAME'],i['OBJECT_MODIFIED'],i['OBJECT_IMPACTED'],i['UAT_ENV'],i['UAT_TIMELINE'],i['DEPLOYMENT_DATE'],i['GRAIN_CHANGED'],i['REMARKS'],i['PRIMARY_CONTACT'],i['ID']))
             con.cursor().execute(f" UPDATE {database}.{schema}.{trg_table_name} SET UPDATED_ON=%s WHERE ID=%s;",(datetime.datetime.now().replace(microsecond=0),i['ID']))
-            return True
+        return True
     except Exception as e:
         st.error(e)
 
 def edit():
+    im=Image.open('icons/Update.png')
+    img_bytes = io.BytesIO()
+    im.save(img_bytes, format="PNG")
+    img_bytes = img_bytes.getvalue()
+    img_str = base64.b64encode(img_bytes).decode()
+    html_code = f"""
+            <div style="display: flex; align-items: center;">
+                <p style="margin: 0;font-size:40px;font-weight:bold;font-family: 'Agbalumo', serif"> Update  </p>
+                <img src="data:image/png;base64,{img_str}" alt="Icon" style="width: 40px; height: 45px; margin-left: 15px;">
+            </div>"""
+
+    st.markdown(html_code, unsafe_allow_html=True)
     name=st.text_input("Enter your name")
     df=get_df('user_details')
     t_df=get_df('table_details')
@@ -75,7 +75,7 @@ def edit():
         st.session_state.df=None
     old_df=pd.DataFrame(new_df)
     old_df.pop('DEACTIVATE')
-    edited_df= st.data_editor(old_df,disabled=["ID","DEACTIVATE","INSERTED_ON","UPDATED_ON"]) 
+    edited_df= st.data_editor(old_df,disabled=["ID","DEACTIVATE","INSERTED_ON","UPDATED_ON"],column_config={"ID": None}) 
     col1,col2=st.columns(2)
     col1.button("Refresh")
     submit=col2.button("Submit")
@@ -85,9 +85,7 @@ def edit():
             for i in changed_rows:
                 for key,value in i.items():
                     if key != 'ID' and key!='UAT_TIMELINE' and key!='DEPLOYMENT_DATE':
-                        # st.write(key,value)
                         i[key]=value.upper()
-        # save=st.button("Save")
         update=Update_table(changed_rows)
         if update: 
             st.success('Modified')
