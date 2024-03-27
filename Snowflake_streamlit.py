@@ -1,19 +1,13 @@
 import streamlit as st
-st.set_page_config(
-    page_title="Streamlit_App",
-    page_icon="😀",
-    layout="wide"
-)
 from PIL import Image
+from snowflake.snowpark.context import get_active_session
 import pandas as pd
 import datetime
 from datetime import date 
 from st_on_hover_tabs import on_hover_tabs
 from collections import defaultdict
-import conn
 import time
- 
-session=conn.connection()
+
 
 def combine_date(date1,date2):
     date=''
@@ -32,24 +26,76 @@ def callback_button_save():
     st.session_state.submit_form=True
 
 def get_df(opt):
-    select_sch_statement = "SELECT * FROM EG_DEV_WRKS_ENGR_DB.SHARED_COMMON"
-    deactivate_statement = "TABLE_DETAILS_DESC WHERE DEACTIVATE='FALSE'"
-    select_statement = ""
-
+    session=get_active_session()
     if opt=='table_details':
-        select_statement = f"{select_sch_statement}.{deactivate_statement} AND DEPLOYMENT_DATE >= CURRENT_DATE()"
-        
+        df =pd.DataFrame(session.sql(f" SELECT * FROM EG_DEV_WRKS_ENGR_DB.SHARED_COMMON.TABLE_DETAILS_DESC WHERE DEACTIVATE='FALSE' AND DEPLOYMENT_DATE>=CURRENT_DATE()").collect())
+        return df
     elif opt=='full_table':
-        select_statement = f"{select_sch_statement}.{deactivate_statement}"
-    
+        df =pd.DataFrame(session.sql(f" SELECT * FROM EG_DEV_WRKS_ENGR_DB.SHARED_COMMON.TABLE_DETAILS_DESC WHERE DEACTIVATE='FALSE'").collect())
+        return df
     elif opt=='user_details':
-        select_statement = f"{select_sch_statement}.USER_DETAILS"
-
-    if len(select_statement) > 0:
-        df =pd.DataFrame(session.sql(select_statement).collect())
+        df =pd.DataFrame(session.sql('SELECT * FROM EG_DEV_WRKS_ENGR_DB.SHARED_COMMON.USER_DETAILS').collect())
         return df 
 
-def get_name_df(name):
+def Get_rows(df):
+    df_with_selections = df.copy()
+    df_with_selections.insert(0, "Delete", False)
+    df_with_selections.pop('DEACTIVATE')
+    edited_df = st.data_editor(
+        df_with_selections,
+        hide_index=True,
+        column_config={"Delete": st.column_config.CheckboxColumn(required=True),"ID": None},
+        disabled=df.columns,
+    )
+    rows = edited_df[edited_df.Delete].index
+    return rows
+
+def get_changed_rows(df_old, df_new):
+    changed_rows = []
+    for index,row in df_new.iterrows(): 
+        if not row.equals(df_old.loc[index]):
+            changed_rows.append(dict(row))
+    return changed_rows
+
+def Update_table(rows,opt):
+    session=get_active_session()
+    if opt=='Delete':
+        for i in range(len(rows)):
+            try:
+                # st.write(rows)
+                out = session.sql(f"""UPDATE EG_DEV_WRKS_ENGR_DB.SHARED_COMMON.TABLE_DETAILS_DESC SET DEACTIVATE='TRUE' WHERE ID ={rows[i]}""").collect()
+                return True
+            except Exception as e:
+                st.error(e)
+
+    elif opt=='Update':
+        try:
+            for i in rows:
+                # st.write(i)
+                out=session.sql(f"""UPDATE EG_DEV_WRKS_ENGR_DB.SHARED_COMMON.TABLE_DETAILS_DESC SET PROJECT_NAME='{i['PROJECT_NAME']}',OBJECT_MODIFIED='{i['OBJECT_MODIFIED']}',OBJECT_IMPACTED='{i['OBJECT_IMPACTED']}',UAT_ENV='{i['UAT_ENV']}',UAT_TIMELINE='{i['UAT_TIMELINE']}',DEPLOYMENT_DATE='{i['DEPLOYMENT_DATE']}',GRAIN_CHANGED='{i['GRAIN_CHANGED']}',REMARKS='{i['REMARKS']}',PRIMARY_CONTACT='{i['PRIMARY_CONTACT']}' WHERE ID='{i['ID']}'""").collect()
+                id=session.sql(f"""UPDATE EG_DEV_WRKS_ENGR_DB.SHARED_COMMON.TABLE_DETAILS_DESC SET UPDATED_ON='{datetime.datetime.now().replace(microsecond=0)}' WHERE ID='{i['ID']}'""").collect()
+                return True
+        except Exception as e:
+            st.error(e)
+
+def color_coding(row):
+    if row.DEPLOYMENT_DATE < date.today():
+        return ['background-color:#93e1d8'] * len(row)
+    elif row.GRAIN_CHANGED=="YES":
+        return ['background-color:#ffa69e'] * len(row) 
+    else:
+        return [''] * len(row)
+
+def edit():
+    im=Image.open('icons/Update.png')
+    col1,_,col2=st.columns([7,0.1,4])
+    with col1:
+        st.subheader("Update an Existing Project Entry")
+    with col2:
+        # st.write(" ")
+        image_placeholder = st.empty()
+        image_placeholder.image(im, width=55)
+    name=st.text_input("Enter your name")
     df=get_df('user_details')
     t_df=get_df('table_details')
     data_dict=df.to_dict(orient='list')
@@ -66,126 +112,70 @@ def get_name_df(name):
             if j==table_data['PROJECT_NAME'][i]:
                 for k in table_data.keys():
                     new_df[k].append(table_data[k][i])        
-    return new_df
-
-def Get_rows(df):
-    df_with_selections = df.copy()
-    df_with_selections.insert(0, "Delete", False)
-    df_with_selections.pop('DEACTIVATE')
-    edited_df = st.data_editor(
-        df_with_selections,
-        hide_index=True,
-        column_config={"Delete": st.column_config.CheckboxColumn(required=True),"ID": None},
-        disabled=df.columns,
-    )
-    rows = edited_df[edited_df.Delete].index
-    return rows
-
-def get_changed_rows(df_old, df_new):
-    changed_rows = {}
-    for index,row in df_new.iterrows():
-        row=dict(row)
-        id=row['ID']
-        for i in row.keys():
-            if row[i]!= df_old.loc[index][i]:
-                if id in changed_rows.keys():
-                    changed_rows[id].append({i:row[i]})
-                else:
-                    changed_rows[id]=[{i:row[i]}]
-    return changed_rows
-
-def Update_table(rows,opt):
-    update_sch_statement="UPDATE EG_DEV_WRKS_ENGR_DB.SHARED_COMMON.TABLE_DETAILS_DESC SET"
-    if opt=='Delete':
-        count=0
-        try:
-            for i in range(len(rows)):
-                out=session.sql(f"{update_sch_statement} DEACTIVATE='TRUE' WHERE ID={rows[i]};").collect()[0]
-                count+=int(out[0])
-            if len(rows)==count:
-                return True
-            else:
-                st.error(f"Only {count} rows deleted out of {len(rows)}")
-        except Exception as e:
-            st.error(e)
-    elif opt=='Update':
-        count=0
-        try:
-            for id,values in rows.items():
-                for val_list in values:
-                    for field,value in val_list.items():
-                        session.sql(f"{update_sch_statement} {field}='{value}' WHERE ID='{id}';").collect()
-            return True
-        except Exception as e:
-            st.error(e)
-        
-def color_coding(row):
-    if row.DEPLOYMENT_DATE < date.today():
-        return ['background-color:#93e1d8'] * len(row)
-    elif row.GRAIN_CHANGED=="YES":
-        return ['background-color:#ffa69e'] * len(row) 
-    else:
-        return [''] * len(row)
-
-def edit():
-    im=Image.open('icons/Update.png')
-    col1,_,col2=st.columns([7,0.2,8])
-    with col1:
-        st.subheader("Update an Existing Project Entry")
-    with col2:
-        image_placeholder = st.empty()
-        image_placeholder.image(im, width=55)
-    name=st.text_input("Enter your name")
-    if len(name)==0:
-        st.warning("Please enter you name")
-    else:
-        old_df=pd.DataFrame(get_name_df(name))
-        old_df.pop('DEACTIVATE')
-        edited_df= st.data_editor(old_df,disabled=["INSERTED_ON","UPDATED_ON"],column_config={"ID":None,"DEACTIVATE":None}) 
-        col1,col2=st.columns(2)
-        col1.button("Refresh")
-        submit=col2.button("Submit")
-        if submit:
-            changed_rows=get_changed_rows(old_df,edited_df)
-            if changed_rows:
-                for id,values in changed_rows.items():
-                    for item in values:
-                        for field,value in item.items():
-                            if field != 'ID' and field!='UAT_TIMELINE' and field!='DEPLOYMENT_DATE':
-                                item[field]=value.upper()
-            update=Update_table(changed_rows,"Update")
-            if update: 
-                st.success('Modified')
+    if 'df' not in st.session_state:
+        st.session_state.df=None
+    old_df=pd.DataFrame(new_df)
+    old_df.pop('DEACTIVATE')
+    edited_df= st.data_editor(old_df,disabled=["INSERTED_ON","UPDATED_ON"],column_config={"ID":None,"DEACTIVATE":None}) 
+    col1,col2=st.columns(2)
+    col1.button("Refresh")
+    submit=col2.button("Submit")
+    if submit:
+        changed_rows=get_changed_rows(old_df,edited_df)
+        if changed_rows:
+            for i in changed_rows:
+                for key,value in i.items():
+                    if key != 'ID' and key!='UAT_TIMELINE' and key!='DEPLOYMENT_DATE':
+                        # st.write(key,value)
+                        i[key]=value.upper()
+        # save=st.button("Save")
+        update=Update_table(changed_rows,"Update")
+        if update: 
+            st.success('Modified')
 
 def delete():
     im=Image.open('icons/Delete.png')
     resized_image=im.resize((im.height,150))
-    col1,_,col2=st.columns([7,0.2,9])
+    col1,_,col2=st.columns([1,0.2,5])
     with col1:
-        st.subheader("Delete an Existing Project Entry")
+        st.title("Delete")
     with col2:
+        st.write(" ")
         image_placeholder = st.empty()
         image_placeholder.image(resized_image, width=60)
     name=st.text_input("Enter your name",key='delete')
-    if len(name)==0:
-        st.warning("Please enter you name")
-    else:
-        old_df=pd.DataFrame(get_name_df(name))
-        selection = list(Get_rows(old_df))
-        removed=[]
-        project=[]
-        col1,col2=st.columns(2)
-        col1.button("Refresh")
-        submit=col2.button('Delete')
-        if submit:
-            for i in selection:
-                removed.append(old_df.loc[i]['ID'])
-                project.append(old_df.loc[i]['PROJECT_NAME'])
-            if Update_table(removed,"Delete"):
-                if len(removed)>1:
-                    st.success(f"Rows with project names {','.join(project)} dropped")
-                else:
-                    st.success(f"Row with project name {''.join(project)} dropped")
+    df=get_df('user_details')
+    t_df=get_df('table_details')
+    data_dict=df.to_dict(orient='list')
+    new_df={}
+    project_name=[]
+    table_data=t_df.to_dict(orient='list')
+    for i in table_data.keys():
+        new_df[i]=[]
+    for i in range(len(data_dict['MEMBER_NAME'])):
+        if data_dict['MEMBER_NAME'][i] == name.upper():
+            project_name.append(data_dict['PROJECT_NAME'][i])
+    for j in project_name:
+        for i in range(len(table_data['PROJECT_NAME'])):
+            if j==table_data['PROJECT_NAME'][i]:
+                for k in table_data.keys():
+                    new_df[k].append(table_data[k][i]) 
+    old_df=pd.DataFrame(new_df)
+    selection = list(Get_rows(old_df))
+    removed=[]
+    project=[]
+    col1,col2=st.columns(2)
+    col1.button("Refresh")
+    submit=col2.button('Delete')
+    if submit:
+        for i in selection:
+            removed.append(old_df.loc[i]['ID'])
+            project.append(old_df.loc[i]['PROJECT_NAME'])
+        if Update_table(removed,"Delete"):
+            if len(removed)>1:
+                st.success(f"Rows with project names {','.join(project)} dropped")
+            else:
+                st.success(f"Row with project name {''.join(project)} dropped")
 
 def insert_check():
     if len(st.session_state.project_name)<=0:
@@ -210,8 +200,9 @@ def insert_check():
         st.toast("❓❓Enter the name of primary contact")
         callback_button_save()
     else:
+        session=get_active_session()
         try:
-            con.cursor().execute('INSERT INTO EG_DEV_WRKS_ENGR_DB.SHARED_COMMON.TABLE_DETAILS_DESC (PROJECT_NAME,OBJECT_MODIFIED,OBJECT_IMPACTED,UAT_ENV,UAT_TIMELINE,DEPLOYMENT_DATE,GRAIN_CHANGED,REMARKS,PRIMARY_CONTACT,DEACTIVATE,INSERTED_ON,UPDATED_ON) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',(st.session_state.project_name,st.session_state.Objects_modified,st.session_state.Objects_impacted,st.session_state.UAT_Env,st.session_state.UAT_Timeline,st.session_state.Deployment_date,st.session_state.G_Changed,st.session_state.remarks,st.session_state.primary_contact,'FALSE',st.session_state.inserted_on,'NA'))
+            out=session.sql(f""" INSERT INTO EG_DEV_WRKS_ENGR_DB.SHARED_COMMON.TABLE_DETAILS_DESC (PROJECT_NAME, OBJECT_MODIFIED, OBJECT_IMPACTED, UAT_ENV, UAT_TIMELINE, DEPLOYMENT_DATE, GRAIN_CHANGED, REMARKS, PRIMARY_CONTACT, DEACTIVATE, INSERTED_ON, UPDATED_ON) VALUES ('{st.session_state.project_name}','{st.session_state.Objects_modified}','{st.session_state.Objects_impacted}','{st.session_state.UAT_Env}','{st.session_state.UAT_Timeline}','{st.session_state.Deployment_date}','{st.session_state.G_Changed}','{st.session_state.remarks}','{st.session_state.primary_contact}','FALSE','{st.session_state.inserted_on}','NA') """).collect()
             st.session_state.inserted=True
             # Clear the form fields after successful insertion
             fields=['project_name','Objects_modified','Objects_impacted','UAT_Env','UAT_Timeline_from','UAT_Timeline_to','Deployment_date','G_Changed','remarks','primary_contact','inserted_on']
@@ -226,7 +217,7 @@ def insert_check():
 def insert():
     im=Image.open('icons/Insert.png')
     resized_image=im.resize((im.height,150))
-    col1,_,col2=st.columns([7,0.2,10])
+    col1,_,col2=st.columns([7,0.1,5])
     with col1:
         st.subheader("Register a New Project Entry")
     with col2:
@@ -248,7 +239,7 @@ def insert():
                 st.session_state[key]=date.today()
             else:
                 st.session_state[key]=""
-    if st.session_state.inserted != True:
+   if st.session_state.inserted != True:
         with st.form("insertform",clear_on_submit=True): 
             project_name=st.text_input("Enter the project name*",value=st.session_state.project_name, help="Specify the project name which is going into deployment").upper()
             Objects_modified=st.text_input("Enter the Objects being Modified*",value=st.session_state.Objects_modified, help="Specify the objects that are being modified").upper()
@@ -261,7 +252,7 @@ def insert():
             UAT_Timeline=combine_date(st.session_state.UAT_Timeline_from,st.session_state.UAT_Timeline_to)
             Deployment_date=st.date_input("Enter the Deployment_date*",value=st.session_state.Deployment_date)
             G_Changed=st.selectbox("Is the grain changed?*",options=[st.session_state.G_Changed,"YES","NO"])
-            remarks=st.text_input("Remarks*",value=st.session_state.remarks,help="Enter the Remarks as None if there are no remarks").upper()
+            remarks=st.text_input("Remarks*",value=st.session_state.remarks).upper()
             primary_contact=st.text_input("Primary contact*",value=st.session_state.primary_contact,help="Enter the email id of the primary contact").upper()
             inserted_on=datetime.datetime.now().replace(microsecond=0)
             if st.session_state.submit_form:
@@ -294,7 +285,7 @@ def display():
     im=Image.open('icons/Table.png')
     col1,_,col2=st.columns([8,0.1,15])
     with col1:
-        st.subheader("Registered Projects List")
+        st.subheader("Registered Projects List for Testing")
     with col2:
         image_placeholder = st.empty()
         image_placeholder.image(im, width=50)
@@ -318,20 +309,7 @@ def main():
     # st.markdown('<style>' + open('./style.css').read() + '</style>', unsafe_allow_html=True)
     with st.sidebar:
         tabs = on_hover_tabs(tabName=['Projects List', 'New Project', 'Update Project','Delete Project'], 
-                            iconName=['economy', 'economy', 'economy','economy'], styles = {'navtab': {'background-color':'#E2E4E8',
-                                                  'color': '#4D4E4F',
-                                                  'font-size': '18px',
-                                                  'transition': '.3s',
-                                                  'white-space': 'nowrap',
-                                                  'text-transform': 'uppercase'},
-                                       'tabOptionsStyle': {':hover :hover': {'color': 'black',
-                                                                      'cursor': 'pointer'}},
-                                       'iconStyle':{'position':'fixed',
-                                                    'left':'7.5px',
-                                                    'text-align': 'left'},
-                                       'tabStyle' : {'list-style-type': 'none',
-                                                     'margin-bottom': '30px',
-                                                     'padding-left': '30px'}},default_choice=0)
+                            iconName=['economy', 'economy', 'economy','economy'], default_choice=0)
     if tabs =='Projects List':
         display()
     elif tabs == 'New Project':
