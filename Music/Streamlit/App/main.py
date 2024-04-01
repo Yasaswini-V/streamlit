@@ -296,11 +296,6 @@ def insert():
         st.button("Click here to insert new record")
 
 def display():
-    headers = _get_websocket_headers()
-    st.write(headers)
-    if "X-Ms-Client-Principal-Name" in headers:
-        user_email = headers["X-Ms-Client-Principal-Name"]
-        st.write(headers) 
     im=Image.open('icons/Table.png')
     col1,_,col2=st.columns([8,0.1,15])
     with col1:
@@ -325,7 +320,7 @@ def display():
         st.markdown("**Grain is changed**")
 
 def main():
-    st.write(st.experimental_user.email)
+    # st.write(st.experimental_user.email)
     st.markdown('<style>' + open('./style.css').read() + '</style>', unsafe_allow_html=True)
     with st.sidebar:
         tabs = on_hover_tabs(tabName=['Projects List', 'New Project', 'Update Project','Delete Project'], 
