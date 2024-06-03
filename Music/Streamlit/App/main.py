@@ -1,10 +1,11 @@
 import streamlit as st
 st.set_page_config(
-    page_title="Project Tracker",
+    page_title="MAP-Planner",
     page_icon="icons/App_Icon.png",
     layout="wide"
 )
 from PIL import Image
+from snow_connect.conn import connect
 from streamlit.web.server.websocket_headers import _get_websocket_headers
 import pandas as pd
 import re
@@ -12,15 +13,15 @@ import datetime
 from datetime import date 
 from st_on_hover_tabs import on_hover_tabs
 from collections import defaultdict
-import conn
 import time
  
-session=conn.connection()
+con=connect()
+my_cur=con.cursor()
 
 def combine_date(date1,date2):
     date=''
-    dd1=date1.strftime('%d/%m/%y')
-    dd2=date2.strftime('%d/%m/%y')
+    dd1=date1.strftime("%m/%d/%Y")
+    dd2=date2.strftime("%m/%d/%Y")
     dd1,mm1,yy1=dd1.split("/")
     dd2,mm2,yy2=dd2.split("/")
     if date1.strftime('%y')==date2.strftime('%y'):
@@ -33,8 +34,8 @@ def callback_button_save():
     st.session_state.save_form=False
     st.session_state.submit_form=True
 
-def get_df(opt):
-    select_sch_statement = "SELECT * FROM EG_DEV_WRKS_ENGR_DB.SHARED_COMMON"
+def get_df(opt,m_name=''):
+    select_sch_statement = "SELECT * FROM EG_DEV_LOG_DB.MAP_PLANNER"
     deactivate_statement = "TABLE_DETAILS_DESC WHERE DEACTIVATE='FALSE'"
     select_statement = ""
 
@@ -45,31 +46,35 @@ def get_df(opt):
         select_statement = f"{select_sch_statement}.{deactivate_statement}"
     
     elif opt=='user_details':
-        select_statement = f"{select_sch_statement}.USER_DETAILS"
+        select_statement = f"{select_sch_statement}.USER_DETAILS WHERE MEMBER_NAME='{m_name}'"
 
     if len(select_statement) > 0:
-        df =pd.DataFrame(session.sql(select_statement).collect())
+        df =pd.DataFrame(my_cur.execute(select_statement).fetch_pandas_all())
         return df 
 
 def get_name_df(name):
-    df=get_df('user_details')
-    t_df=get_df('table_details')
-    data_dict=df.to_dict(orient='list')
-    new_df={}
-    project_name=[]
-    table_data=t_df.to_dict(orient='list')
-    for i in table_data.keys():
-        new_df[i]=[]
-    for i in range(len(data_dict['MEMBER_NAME'])):
-        if data_dict['MEMBER_NAME'][i] == name.upper():
-            project_name.append(data_dict['PROJECT_NAME'][i])
-    for j in project_name:
-        for i in range(len(table_data['PROJECT_NAME'])):
-            if j==table_data['PROJECT_NAME'][i]:
-                for k in table_data.keys():
-                    new_df[k].append(table_data[k][i])        
-    return new_df
-
+    with st.spinner("Please wait..."):
+        df=get_df('user_details',m_name=name)
+        t_df=get_df('table_details')
+    if len(t_df)==0 or len(df)==0:
+        st.info(f"No entries with name {name} are found..")
+    else:
+        try:
+            new_df={}
+            project_name=[]
+            for i in t_df.columns:
+                new_df[i]=[]
+            for proj_name in df['PROJECT_NAME']:
+                project_name.append(proj_name)
+            for j in project_name:
+                for i in range(len(t_df['PROJECT_NAME'])):
+                    if j==t_df['PROJECT_NAME'][i]:
+                        for k in t_df.columns:
+                            new_df[k].append(t_df[k][i])
+            return new_df
+        except Exception as e:
+            st.info(e)    
+        
 def Get_rows(df):
     df_with_selections = df.copy()
     df_with_selections.insert(0, "Delete", False)
@@ -77,7 +82,7 @@ def Get_rows(df):
     edited_df = st.data_editor(
         df_with_selections,
         hide_index=True,
-        column_config={"Delete": st.column_config.CheckboxColumn(required=True),"ID": None},
+        column_config={"Delete": st.column_config.CheckboxColumn(required=True),"ID": None,"PROJECT_NAME":"PROJECT NAME","OBJECT_MODIFIED":"OBJECT MODIFIED","OBJECT_IMPACTED":"OBJECT IMPACTED","UAT_ENV":"UAT ENV","UAT_TIMELINE":"UAT TIMELINE","DEPLOYMENT_DATE":"DEPLOYMENT DATE","GRAIN_CHANGED":"GRAIN CHANGED","PRIMARY_CONTACT":"PRIMARY CONTACT","INSERTED_ON":"INSERTED ON","UPDATED_ON":"UPDATED ON","DEACTIVATE":None},
         disabled=df.columns,
     )
     rows = edited_df[edited_df.Delete].index
@@ -97,17 +102,12 @@ def get_changed_rows(df_old, df_new):
     return changed_rows
 
 def Update_table(rows,opt):
-    update_sch_statement="UPDATE EG_DEV_WRKS_ENGR_DB.SHARED_COMMON.TABLE_DETAILS_DESC SET"
+    update_sch_statement="UPDATE EG_DEV_LOG_DB.MAP_PLANNER.TABLE_DETAILS_DESC SET"
     if opt=='Delete':
         count=0
         try:
             for i in range(len(rows)):
-                out=session.sql(f"{update_sch_statement} DEACTIVATE='TRUE' WHERE ID={rows[i]};").collect()[0]
-                count+=int(out[0])
-            if len(rows)==count:
-                return True
-            else:
-                st.error(f"Only {count} rows deleted out of {len(rows)}")
+                out=my_cur.execute(f"{update_sch_statement} DEACTIVATE='TRUE' WHERE ID={rows[i]};")
         except Exception as e:
             st.error(e)
     elif opt=='Update':
@@ -116,11 +116,17 @@ def Update_table(rows,opt):
             for id,values in rows.items():
                 for val_list in values:
                     for field,value in val_list.items():
-                        session.sql(f"{update_sch_statement} {field}='{value}' WHERE ID='{id}';").collect()
+                        my_cur.execute(f"{update_sch_statement} {field}='{value}',UPDATED_ON='{datetime.datetime.now().replace(microsecond=0)}' WHERE ID='{id}';")
             return True
         except Exception as e:
             st.error(e)
-        
+
+def mail():
+    headers = _get_websocket_headers()
+    if "X-Ms-Client-Principal-Name" in headers:
+        user_email = headers["X-Ms-Client-Principal-Name"]
+        return user_email
+
 def color_coding(row):
     if row.DEPLOYMENT_DATE < date.today():
         return ['background-color:#93e1d8'] * len(row)
@@ -130,23 +136,19 @@ def color_coding(row):
         return [''] * len(row)
 
 def edit():
-    pattern='^[a-zA-Z]+\.+[a-zA-Z]+@ecolab\.com$'
-    im=Image.open('icons/Update.png')
-    col1,_,col2=st.columns([7,0.2,8])
-    with col1:
-        st.subheader("Update an Existing Project Entry")
+    st.subheader("Update an Existing Project Entry")
+    col1,col2=st.columns([7,3])
+    name=col1.text_input("Enter your name").upper()
     with col2:
-        image_placeholder = st.empty()
-        image_placeholder.image(im, width=55)
-    name=st.text_input("Enter your name")
-    # if (len(name)==0) and (not re.search(pattern,st.session_state.primary_contact)):
-    #     st.warning("Enter a valid email id")
-    if len(name)==0:
-        st.warning("Please enter a name")
-    else:
+        st.header("")
+        st.button("Search")
+    if len(name)>0:
         old_df=pd.DataFrame(get_name_df(name))
         old_df.pop('DEACTIVATE')
-        edited_df= st.data_editor(old_df,disabled=["INSERTED_ON","UPDATED_ON"],column_config={"ID":None,"DEACTIVATE":None}) 
+        if len(old_df)==0:
+            st.info(f"No records projects found under {name}")
+        else:
+            edited_df= st.data_editor(old_df,disabled=["INSERTED_ON","UPDATED_ON"],column_config={"ID": None,"PROJECT_NAME":"PROJECT NAME","OBJECT_MODIFIED":"OBJECT MODIFIED","OBJECT_IMPACTED":"OBJECT IMPACTED","UAT_ENV":"UAT ENV","UAT_TIMELINE":"UAT TIMELINE","DEPLOYMENT_DATE":"DEPLOYMENT DATE","GRAIN_CHANGED":"GRAIN CHANGED","PRIMARY_CONTACT":"PRIMARY CONTACT","INSERTED_ON":"INSERTED ON","UPDATED_ON":"UPDATED ON","DEACTIVATE":None}) 
         col1,col2=st.columns(2)
         col1.button("Refresh")
         submit=col2.button("Submit")
@@ -158,25 +160,25 @@ def edit():
                         for field,value in item.items():
                             if field != 'ID' and field!='UAT_TIMELINE' and field!='DEPLOYMENT_DATE':
                                 item[field]=value.upper()
-            update=Update_table(changed_rows,"Update")
-            if update: 
-                st.success('Modified')
+            with st.spinner("Modifying..."):
+                if Update_table(changed_rows,"Update"): 
+                    st.success(f"Modified Successfully")
+    else:
+        st.info("Please enter your name to see the records you have access to Update")
 
 def delete():
-    im=Image.open('icons/Delete.png')
-    resized_image=im.resize((im.height,150))
-    col1,_,col2=st.columns([7,0.2,9])
-    with col1:
-        st.subheader("Delete an Existing Project Entry")
+    st.subheader("Delete an Existing Project Entry")
+    col1,col2=st.columns([7,3])
+    name=col1.text_input("Enter your name",key='delete').upper()
     with col2:
-        image_placeholder = st.empty()
-        image_placeholder.image(resized_image, width=60)
-    name=st.text_input("Enter your name",key='delete')
-    if len(name)==0:
-        st.warning("Please enter you name")
-    else:
+        st.subheader(" ")
+        st.button("Search")
+    if len(name)>0:
         old_df=pd.DataFrame(get_name_df(name))
-        selection = list(Get_rows(old_df))
+        if len(old_df)==0:
+            st.info(f"No records projects found under {name}")
+        else:
+            selection = list(Get_rows(old_df))
         removed=[]
         project=[]
         col1,col2=st.columns(2)
@@ -186,14 +188,21 @@ def delete():
             for i in selection:
                 removed.append(old_df.loc[i]['ID'])
                 project.append(old_df.loc[i]['PROJECT_NAME'])
-            if Update_table(removed,"Delete"):
-                if len(removed)>1:
-                    st.success(f"Rows with project names {','.join(project)} dropped")
-                else:
-                    st.success(f"Row with project name {''.join(project)} dropped")
+            with st.spinner("Deleting..."):
+                time.sleep(1)
+                if Update_table(removed,"Delete"):
+                    st.
+                    if len(removed)==0:
+                        st.info("Please click on the respective checkbox to delete the row")
+                    elif len(removed)>1:
+                        st.success(f"Rows with project names {','.join(project)} dropped")
+                    else:
+                        st.success(f"Row with project name {''.join(project)} dropped")
+    else:
+        st.info("Please enter your name to see the records you have access to delete")
 
 def insert_check():
-    pattern='^[a-zA-Z]+\.+[a-zA-Z]+@ecolab\.com$'
+    pattern='^[a-zA-Z]+\.+[a-zA-Z]+@ECOLAB\.COM$'
     if len(st.session_state.project_name)<=0:
         st.toast("❓❓Enter the project name")
         callback_button_save()
@@ -212,32 +221,26 @@ def insert_check():
     elif len(st.session_state.remarks)<=0:
         st.toast("❓❓Enter remark as none if there are no remarks")
         callback_button_save()
-    elif len(st.session_state.primary_contact)<=0:
-        if not re.search(pattern,st.session_state.primary_contact):
+    elif (len(st.session_state.primary_contact)==0) and (not re.search(pattern,st.session_state.primary_contact)):
             st.toast("❓❓Enter the name of primary contact")
-        callback_button_save()
+            callback_button_save()
+   
     else:
         try:
-            con.cursor().execute('INSERT INTO EG_DEV_WRKS_ENGR_DB.SHARED_COMMON.TABLE_DETAILS_DESC (PROJECT_NAME,OBJECT_MODIFIED,OBJECT_IMPACTED,UAT_ENV,UAT_TIMELINE,DEPLOYMENT_DATE,GRAIN_CHANGED,REMARKS,PRIMARY_CONTACT,DEACTIVATE,INSERTED_ON,UPDATED_ON) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',(st.session_state.project_name,st.session_state.Objects_modified,st.session_state.Objects_impacted,st.session_state.UAT_Env,st.session_state.UAT_Timeline,st.session_state.Deployment_date,st.session_state.G_Changed,st.session_state.remarks,st.session_state.primary_contact,'FALSE',st.session_state.inserted_on,'NA'))
+            my_cur.execute(f"INSERT INTO EG_DEV_LOG_DB.MAP_PLANNER.TABLE_DETAILS_DESC (PROJECT_NAME,OBJECT_MODIFIED,OBJECT_IMPACTED,UAT_ENV,UAT_TIMELINE,DEPLOYMENT_DATE,GRAIN_CHANGED,REMARKS,PRIMARY_CONTACT,DEACTIVATE,INSERTED_ON,UPDATED_ON,STATUS) VALUES ('{st.session_state.project_name}','{st.session_state.Objects_modified}','{st.session_state.Objects_impacted}','{st.session_state.UAT_Env}','{st.session_state.UAT_Timeline}','{st.session_state.Deployment_date}','{st.session_state.G_Changed}','{st.session_state.remarks}','{st.session_state.primary_contact}','FALSE','{st.session_state.inserted_on}','{'NA'}','{st.session_state.Status}')")
             st.session_state.inserted=True
-            fields=['project_name','Objects_modified','Objects_impacted','UAT_Env','UAT_Timeline_from','UAT_Timeline_to','Deployment_date','G_Changed','remarks','primary_contact','inserted_on']
+            st.write('Inserted')
+            fields=['project_name','Objects_modified','Objects_impacted','UAT_Env','UAT_Timeline_from','UAT_Timeline_to','Deployment_date','G_Changed','Status','remarks','primary_contact','inserted_on']
             for key in fields:
                 if key=='UAT_Timeline_from' or key == 'UAT_Timeline_to' or key=='Deployment_date':
                     st.session_state[key]=date.today()
                 else:
                     st.session_state[key]=""
         except Exception as e:
-                st.error(f"Error inserting data: {e}")
+            st.error(e)
 
 def insert():
-    im=Image.open('icons/Insert.png')
-    resized_image=im.resize((im.height,150))
-    col1,_,col2=st.columns([7,0.2,10])
-    with col1:
-        st.subheader("Register a New Project Entry")
-    with col2:
-        image_placeholder = st.empty()
-        image_placeholder.image(resized_image, width=60)
+    st.subheader("Register a New Project Entry")
     if 'save_form' not in st.session_state:
         st.session_state.save_form=False
     if 'submit_form' not in st.session_state:
@@ -246,28 +249,30 @@ def insert():
         st.session_state.inserted=False
     
     col1,col2,_=st.columns([1,1,2])
-    fields=['project_name','Objects_modified','Objects_impacted','UAT_Env','UAT_Timeline_from','UAT_Timeline_to','Deployment_date','remarks','primary_contact','G_Changed']
+    fields=['project_name','Objects_modified','Objects_impacted','UAT_Env','UAT_Timeline_from','UAT_Timeline_to','Deployment_date','remarks','primary_contact','G_Changed','Status']
     for key in fields:
         if key not in st.session_state:
             if key=='UAT_Timeline_from' or key == 'UAT_Timeline_to' or key=='Deployment_date':
                 st.session_state[key]=date.today()
             else:
                 st.session_state[key]=""
+    UAT_BD=[st.session_state.UAT_Env,'EG_DEV_PREP_DB', 'EG_TST_PREP_DB']
     if st.session_state.inserted != True:
         with st.form("insertform",clear_on_submit=True): 
             project_name=st.text_input("Enter the project name*",value=st.session_state.project_name, help="Specify the project name which is going into deployment").upper()
             Objects_modified=st.text_input("Enter the Objects being Modified*",value=st.session_state.Objects_modified, help="Specify the objects that are being modified").upper()
             Objects_impacted=st.text_input("Enter the Objects that will be impacted*",value=st.session_state.Objects_impacted, help="If more than one object is impacted enter it with objects seperated by comma(,)").upper()
-            UAT_Env=st.text_input("Enter the UAT Database and Schema*",value=st.session_state.UAT_Env, help="Enter the UAT environment in the format database.schema").upper()
+            UAT_Env=st.selectbox("Select the UAT Database*",options=UAT_BD, help="Enter the UAT environment in the format database.schema").upper()
             st.write("Choose the UAT Timeline")
             col1,buff,col2=st.columns([2,0.5,2])
-            UAT_Timeline_from=col1.date_input("From*",value=st.session_state.UAT_Timeline_from,help="Enter the date when the UAT will be started")    
-            UAT_Timeline_to=col2.date_input("To*",value=st.session_state.UAT_Timeline_to,help="Enter the date when the UAT will be ended")
+            st.session_state.UAT_Timeline_from=col1.date_input("From*",value=st.session_state.UAT_Timeline_from,help="Enter the date when the UAT will be started")
+            st.session_state.UAT_Timeline_to=col2.date_input("To*",value=st.session_state.UAT_Timeline_to,help="Select the testing environment.")
             UAT_Timeline=combine_date(st.session_state.UAT_Timeline_from,st.session_state.UAT_Timeline_to)
             Deployment_date=st.date_input("Enter the Deployment_date*",value=st.session_state.Deployment_date)
             G_Changed=st.selectbox("Is the grain changed?*",options=[st.session_state.G_Changed,"YES","NO"])
+            Status=st.selectbox("Select the status*",options=[st.session_state.Status,"NOT STARTED","IN PROGRESS","DEPLOYED"],help="Select the status of the UAT of the project.")
             remarks=st.text_input("Remarks*",value=st.session_state.remarks,help="Enter the Remarks as None if there are no remarks").upper()
-            primary_contact=st.text_input("Mail id of Primary contact*",value=st.session_state.primary_contact,help="Enter the company email id of the primary contact").upper()
+            primary_contact=st.text_input("Mail ID of Primary Contact*",value=st.session_state.primary_contact,help="Enter the ecolab mail id of the person to be contacted.").upper()
             inserted_on=datetime.datetime.now().replace(microsecond=0)
             if st.session_state.submit_form:
                 col1,col2=st.columns(2)
@@ -279,14 +284,15 @@ def insert():
                     st.session_state.UAT_Timeline=UAT_Timeline
                     st.session_state.Deployment_date=Deployment_date
                     st.session_state.G_Changed=G_Changed
+                    st.session_state.Status=Status
                     st.session_state.remarks=remarks
                     st.session_state.primary_contact=primary_contact
                     st.session_state.inserted_on=inserted_on        
-                    st.toast('Your data is saved!! Please click submit to validate and insert data')
+                    st.info('Your data is saved!! Please click submit to validate and insert data')
                     time.sleep(2)
                     st.rerun()
                 col2.form_submit_button("Submit",on_click=insert_check)
-                    
+                # st.write('Submitted')       
             else:
                 st.form_submit_button("Save",on_click=callback_button_save())
     if st.session_state.inserted:
@@ -296,26 +302,36 @@ def insert():
         st.button("Click here to insert new record")
 
 def display():
-    im=Image.open('icons/Table.png')
-    col1,_,col2=st.columns([8,0.1,15])
-    with col1:
-        st.subheader("Registered Projects List")
-    with col2:
-        image_placeholder = st.empty()
-        image_placeholder.image(im, width=50)
+    icon,title_col,_=st.columns([1,3,9])
+    title_col.title("MAP-Planner")
+    with icon:
+        st.write("")
+        im1=Image.open('icons/App_Icon.png')
+        st.image(im1)
+    st.subheader("Project Registry")
     df=get_df("full_table")
-    styled_df=df.style.apply(color_coding,axis=1)
-    st.dataframe(styled_df,hide_index=True,column_config={"ID": None,"DEACTIVATE":None})
-    part1,part2,_=st.columns([0.25,2,3])
+    days=[]
+    if len(df)>0:
+        for i in (df['DEPLOYMENT_DATE']):
+            d1=i
+            d2=date.today()
+            delta=d1-d2
+            days.append(int(delta.days))
+        df.insert(7,"DATE ELAPSED",days)
+    styled_df = df.style.apply(color_coding,axis=1).set_table_styles([{'selector' : 'th','props' : [('color','black'),('font-weight','bold')]}])
+    st.dataframe(styled_df,hide_index=True,column_config={"ID": None,"PROJECT_NAME":"PROJECT NAME","OBJECT_MODIFIED":"OBJECT MODIFIED","OBJECT_IMPACTED":"OBJECT IMPACTED","UAT_ENV":"UAT ENV","UAT_TIMELINE":"UAT TIMELINE","DEPLOYMENT_DATE":"DEPLOYMENT DATE","GRAIN_CHANGED":"GRAIN CHANGED","PRIMARY_CONTACT":"PRIMARY CONTACT","INSERTED_ON":"INSERTED ON","UPDATED_ON":"UPDATED ON","DEACTIVATE":None})
+    # st.table(styled_df)
+    part1,part2,row1,row2,_=st.columns([0.4,1.5,0.4,2,10])
     with part1:
         im1=Image.open('icons/icon1.png')
-        st.image(im1)
+        resized_image=im1.resize((im1.height,55))
+        st.image(resized_image, width=20)
     with part2:
         st.markdown("**Deployed**")
-    row1,row2,_=st.columns([0.25,2,3])
     with row1:
         im1=Image.open('icons/icon2.png')
-        st.image(im1)
+        resized_image=im1.resize((im1.height,60))
+        st.image(resized_image, width=20)
     with row2:
         st.markdown("**Grain is changed**")
 
